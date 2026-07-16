@@ -1,0 +1,182 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Personal Portfolio & Admin Engine API",
+    "description": "Asynchronous REST API built with FastAPI and Motor (MongoDB) for managing portfolio projects, publications, skills, experiences, and administrative authentication.",
+    "version": "1.0.0"
+  },
+  "servers": [
+    {
+      "url": "http://localhost:8000",
+      "description": "Local Development Server"
+    },
+    {
+      "url": "https://api.yourdomain.com",
+      "description": "Production Server (Sanitized URL)"
+    }
+  ],
+  "paths": {
+    "/api/auth/login": {
+      "post": {
+        "tags": ["Auth"],
+        "summary": "Admin Login",
+        "description": "Authenticates administrator credentials against Bcrypt hashes and issues an HTTP Bearer JWT access token.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["username", "password"],
+                "properties": {
+                  "username": { "type": "string", "example": "admin" },
+                  "password": { "type": "string", "example": "••••••••" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful authentication",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "access_token": { "type": "string", "example": "eyJhbGciOiJIUzI1NiIsIn..." },
+                    "token_type": { "type": "string", "example": "bearer" },
+                    "role": { "type": "string", "example": "admin" }
+                  }
+                }
+              }
+            }
+          },
+          "401": { "description": "Invalid credentials" }
+        }
+      }
+    },
+    "/api/projects": {
+      "get": {
+        "tags": ["Projects"],
+        "summary": "Get All Projects",
+        "description": "Retrieves public projects sorted by display order weight.",
+        "responses": {
+          "200": {
+            "description": "Array of project items",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": { "$ref": "#/components/schemas/Project" }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": ["Projects"],
+        "summary": "Create New Project",
+        "description": "Protected administrative route to create a new portfolio project document in MongoDB.",
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/Project" }
+            }
+          }
+        },
+        "responses": {
+          "201": { "description": "Project created successfully" },
+          "401": { "description": "Missing or expired JWT Bearer token" },
+          "403": { "description": "Admin privileges required" },
+          "422": { "description": "Validation Error (Pydantic schema rejection)" }
+        }
+      }
+    },
+    "/api/projects/{id}": {
+      "put": {
+        "tags": ["Projects"],
+        "summary": "Update Project",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/Project" }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Updated successfully" }
+        }
+      },
+      "delete": {
+        "tags": ["Projects"],
+        "summary": "Delete Project",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": { "description": "Deleted successfully" }
+        }
+      }
+    },
+    "/api/skills": {
+      "get": {
+        "tags": ["Skills"],
+        "summary": "Get All Technical Skills",
+        "responses": {
+          "200": { "description": "List of skill entities grouped by category" }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      }
+    },
+    "schemas": {
+      "Project": {
+        "type": "object",
+        "required": ["title", "slug", "tech", "status", "icon", "order"],
+        "properties": {
+          "_id": { "type": "string", "example": "65b9e8d3f1a2c3b4d5e6f7a8" },
+          "title": { "type": "string", "example": "Enterprise Document Intelligence" },
+          "slug": { "type": "string", "example": "enterprise-doc-intelligence" },
+          "description": { "type": "string", "example": "AI-powered extraction pipeline." },
+          "content": { "type": "string", "example": "Full write-up markdown text..." },
+          "tech": {
+            "type": "array",
+            "items": { "type": "string" },
+            "example": ["Python", "FastAPI", "MongoDB"]
+          },
+          "status": { "type": "string", "example": "Completed" },
+          "icon": { "type": "string", "example": "FaBrain" },
+          "isShow": { "type": "boolean", "example": true },
+          "order": { "type": "integer", "example": 10 }
+        }
+      }
+    }
+  }
+}
